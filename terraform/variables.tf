@@ -14,12 +14,6 @@ variable "smartling_account_uid" {
   type        = string
 }
 
-variable "source_url" {
-  description = "Default HTTP feed URL for GTFS-RT alerts"
-  type        = string
-  default     = ""
-}
-
 variable "destination_bucket" {
   description = "S3 bucket where translated feeds will be stored"
   type        = string
@@ -33,7 +27,28 @@ variable "destination_path" {
 variable "target_languages" {
   description = "List of target languages"
   type        = list(string)
-  default     = ["ES", "PT-BR", "HT", "ZH-CN", "VI", "ZH-TW"]
+  default     = ["es", "pt-BR", "ht", "zh-CN", "vi", "zh-TW"]
+}
+
+variable "trigger" {
+  description = "Trigger configuration for the Lambda. Can be type 'cron' with 'schedule_expression' and 'source_url', or type 's3' with 'bucket_name' and optional 'prefix'."
+  type = object({
+    type                = string
+    schedule_expression = optional(string)
+    source_url          = optional(string)
+    bucket_name         = optional(string)
+    prefix              = optional(string)
+  })
+  default = {
+    type                = "cron"
+    schedule_expression = "rate(1 minute)"
+    source_url          = ""
+  }
+
+  validation {
+    condition     = contains(["cron", "s3"], var.trigger.type)
+    error_message = "Trigger type must be either 'cron' or 's3'."
+  }
 }
 
 variable "lambda_timeout" {
