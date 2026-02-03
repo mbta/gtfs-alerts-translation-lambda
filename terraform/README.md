@@ -40,7 +40,7 @@ module "gtfs_translator" {
 | `function_name` | Name of the Lambda function | `string` | `"gtfs-alerts-translator"` | no |
 | `smartling_user_id` | Smartling User ID | `string` | n/a | yes |
 | `smartling_account_uid` | Smartling Account UID | `string` | n/a | yes |
-| `destination_bucket` | S3 bucket where translated feeds will be stored | `string` | n/a | yes |
+| `destination_bucket_name` | S3 bucket where translated feeds will be stored | `string` | n/a | yes |
 | `destination_path` | S3 path/prefix within the bucket | `string` | n/a | yes |
 | `target_languages` | List of target languages | `list(string)` | `["es", "pt-BR", "ht", "zh-CN", "vi", "zh-TW"]` | no |
 | `trigger` | Trigger configuration (type 'cron' or 's3') | `object` | See `variables.tf` | no |

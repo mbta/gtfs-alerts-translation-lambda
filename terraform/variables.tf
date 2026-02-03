@@ -14,7 +14,7 @@ variable "smartling_account_uid" {
   type        = string
 }
 
-variable "destination_bucket" {
+variable "destination_bucket_name" {
   description = "S3 bucket where translated feeds will be stored"
   type        = string
 }

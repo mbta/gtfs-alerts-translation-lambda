@@ -49,8 +49,8 @@ resource "aws_iam_role_policy" "lambda_permissions" {
           ]
           Effect = "Allow"
           Resource = [
-            "arn:aws:s3:::${var.destination_bucket}/${var.destination_path}",
-            "arn:aws:s3:::${var.destination_bucket}/${var.destination_path}*"
+            "arn:aws:s3:::${var.destination_bucket_name}/${var.destination_path}",
+            "arn:aws:s3:::${var.destination_bucket_name}/${var.destination_path}*"
           ]
         }
       ],
@@ -100,7 +100,7 @@ resource "aws_lambda_function" "translation_function" {
       SMARTLING_USER_SECRET_ARN = aws_secretsmanager_secret.smartling_secret.arn
       SMARTLING_ACCOUNT_UID     = var.smartling_account_uid
       SOURCE_URL                = var.trigger.source_url != null ? var.trigger.source_url : ""
-      DESTINATION_BUCKET_URL    = "s3://${var.destination_bucket}/${var.destination_path}"
+      DESTINATION_BUCKET_URL    = "s3://${var.destination_bucket_name}/${var.destination_path}"
       TARGET_LANGUAGES          = join(",", var.target_languages)
     }
   }
