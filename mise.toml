@@ -1,0 +1,22 @@
+[tools]
+uv = "0.9"
+
+[tasks.setup]
+description = "Install dependencies"
+run = "uv sync"
+
+[tasks.format]
+description = "Format code with Ruff"
+run = "uv run ruff format . && uv run ruff check . --fix"
+
+[tasks.test]
+description = "Run tests"
+run = "uv run pytest"
+
+[tasks.check]
+description = "Run linting and type checking"
+run = "uv run ruff format --check . && uv run ruff check . && uv run mypy ."
+
+[tasks.run-local]
+description = "Run translation locally and print to stdout"
+run = "uv run python scripts/run_local.py"
