@@ -1,18 +1,18 @@
 name: Build Lambda
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'gtfs_translation/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'mise.toml'
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
   build:
     name: Build & Commit Zip
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: write
 
