@@ -25,3 +25,5 @@ jobs:
 
       - name: Run tests
         run: mise run test
+        env:
+          AWS_DEFAULT_REGION: us-east-1
