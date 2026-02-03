@@ -22,7 +22,9 @@ description = "Build Lambda deployment package"
 run = """
 rm -rf dist function.zip
 uv export --no-dev --format requirements-txt > requirements.txt
-uv pip install -r requirements.txt --target dist
+# Filter out boto3 and botocore since they are provided by the Lambda runtime
+grep -vE "^(boto3|botocore)==" requirements.txt > requirements_filtered.txt
+uv pip install -r requirements_filtered.txt --target dist
 cp -r gtfs_translation dist/
 # Use deterministic zipping: 
 # -X: no extra file attributes (UID/GID)
@@ -33,7 +35,7 @@ cp -r gtfs_translation dist/
 find dist -exec touch -h -t 202601010000 {} +
 cd dist && zip -X -r ../function.zip .
 cd ..
-rm -rf dist requirements.txt
+rm -rf dist requirements.txt requirements_filtered.txt
 """
 
 [tasks.run-local]
