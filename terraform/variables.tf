@@ -4,6 +4,12 @@ variable "function_name" {
   default     = "gtfs-alerts-translator"
 }
 
+variable "is_temporary" {
+  description = "Whether resources should be configured for easy cleanup"
+  type        = bool
+  default     = false
+}
+
 variable "smartling_user_id" {
   description = "Smartling User ID"
   type        = string
