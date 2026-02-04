@@ -8,7 +8,7 @@ import httpx
 from google.transit import gtfs_realtime_pb2
 
 from gtfs_translation.config import settings
-from gtfs_translation.core.processor import FeedFormat, FeedProcessor
+from gtfs_translation.core.processor import FeedFormat, FeedProcessor, ProcessingMetrics
 from gtfs_translation.core.smartling import SmartlingTranslator
 
 NOTICE_LEVEL = 25
@@ -57,20 +57,44 @@ async def fetch_source(url: str) -> tuple[bytes, FeedFormat]:
     return content, fmt
 
 
-async def fetch_old_feed(dest_url: str, fmt: FeedFormat) -> gtfs_realtime_pb2.FeedMessage | None:
+async def fetch_old_feed(
+    dest_url: str, fmt: FeedFormat
+) -> tuple[gtfs_realtime_pb2.FeedMessage | None, dict[str, Any] | None]:
     try:
         bucket, key = get_s3_parts(dest_url)
         resp = s3.get_object(Bucket=bucket, Key=key)
         content: bytes = resp["Body"].read()
-        return FeedProcessor.parse(content, fmt)
+        old_json = None
+        if fmt == "json":
+            import json
+
+            old_json = json.loads(content.decode("utf-8"))
+        return FeedProcessor.parse(content, fmt), old_json
     except botocore.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "404" or e.response["Error"]["Code"] == "NoSuchKey":
             logger.info("Destination feed not found, starting fresh: %s", dest_url)
-            return None
+            return None, None
         raise e
     except Exception:
         logger.exception("Unexpected error fetching old feed from %s", dest_url)
-        return None
+        return None, None
+
+
+def should_upload(
+    old_feed: gtfs_realtime_pb2.FeedMessage | None,
+    new_feed: gtfs_realtime_pb2.FeedMessage,
+    metrics: ProcessingMetrics | None = None,
+) -> bool:
+    if not old_feed:
+        return True
+
+    if old_feed.header.timestamp != new_feed.header.timestamp:
+        return True
+
+    if metrics is None:
+        return True
+
+    return metrics.strings_translated > 0
 
 
 async def run_translation(source_url: str, dest_url: str) -> None:
@@ -89,7 +113,7 @@ async def run_translation(source_url: str, dest_url: str) -> None:
         original_json = json.loads(content.decode("utf-8"))
 
     # 2. Fetch old feed for diffing
-    old_feed = await fetch_old_feed(dest_url, fmt)
+    old_feed, old_original_json = await fetch_old_feed(dest_url, fmt)
 
     # 3. Translate
     translator = SmartlingTranslator(
@@ -104,9 +128,14 @@ async def run_translation(source_url: str, dest_url: str) -> None:
             settings.target_lang_list,
             concurrency_limit=settings.concurrency_limit,
             original_json=original_json,
+            old_original_json=old_original_json,
         )
 
         logger.log(NOTICE_LEVEL, "Translation metrics: %s", metrics.to_dict())
+
+        if not should_upload(old_feed, new_feed, metrics):
+            logger.log(NOTICE_LEVEL, "No translation changes detected; skipping upload.")
+            return
 
         # 4. Upload
         translated_content = FeedProcessor.serialize(new_feed, fmt, original_json=original_json)
