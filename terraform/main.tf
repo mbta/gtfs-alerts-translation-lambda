@@ -22,9 +22,10 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
 resource "aws_secretsmanager_secret" "smartling_secret" {
   # checkov:skip=CKV_AWS_149: Using default KMS key for encryption is sufficient for this secret
   # checkov:skip=CKV2_AWS_57: Secret is static user credential, rotation not managed by this module
-  name        = "${var.function_name}-smartling-secret"
-  description = "Smartling User Secret for GTFS translation"
-  tags        = var.tags
+  name                    = "${var.function_name}-smartling-secret"
+  description             = "Smartling User Secret for GTFS translation"
+  recovery_window_in_days = var.is_temporary ? 0 : 30
+  tags                    = var.tags
 }
 
 resource "aws_iam_role_policy" "lambda_permissions" {
@@ -52,6 +53,13 @@ resource "aws_iam_role_policy" "lambda_permissions" {
             "arn:aws:s3:::${var.destination_bucket_name}/${var.destination_path}",
             "arn:aws:s3:::${var.destination_bucket_name}/${var.destination_path}*"
           ]
+        },
+        {
+          Action = [
+            "s3:ListBucket"
+          ]
+          Effect   = "Allow"
+          Resource = "arn:aws:s3:::${var.destination_bucket_name}"
         }
       ],
       var.trigger.type == "s3" ? [
@@ -72,7 +80,7 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   # checkov:skip=CKV_AWS_158: Log encryption with CMK not required for this task
   # checkov:skip=CKV_AWS_338: 14 days retention is sufficient and cost-effective for this project
   name              = "/aws/lambda/${var.function_name}"
-  retention_in_days = 14
+  retention_in_days = var.is_temporary ? 1 : 14
   tags              = var.tags
 }
 

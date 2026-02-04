@@ -89,3 +89,4 @@ Required Environment Variables:
 
 - **Run Tests:** Always run `mise run test` and ensure all tests pass before completing a task.
 - **Commit:** Commit changes with a descriptive message after completing a task or logical unit of work. Use **Conventional Commits** format (e.g., `feat: ...`, `fix: ...`, `chore: ...`).
+- **Terraform State:** Never remove or delete `.tfstate` files if they exist in the repo.
