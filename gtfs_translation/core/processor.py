@@ -61,7 +61,7 @@ class FeedProcessor:
             if original_json:
                 FeedProcessor._merge_enhanced_fields(current_json, original_json)
 
-            res_json: bytes = json.dumps(current_json, indent=2).encode("utf-8")
+            res_json: bytes = json.dumps(current_json, indent=2, ensure_ascii=False).encode("utf-8")
             return res_json
         else:
             raise ValueError(f"Unsupported format: {fmt}")
