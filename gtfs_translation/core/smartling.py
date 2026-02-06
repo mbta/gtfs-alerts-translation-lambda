@@ -170,46 +170,63 @@ class SmartlingTranslator(Translator):
         await self.client.aclose()
 
 class SmartlingFileTranslator(SmartlingTranslator):
-    async def _do_translate_batch(self, texts: list[str], target_lang: str) -> list[str]:
+    async def _translate_batch_async(
+        self, texts: list[str], target_langs: list[str]
+    ) -> dict[str, list[str]]:
         """
-        Translates a batch of texts using Smartling MT File API.
+        Translates a batch of texts using Smartling File Translation API.
+        1. Upload file
+        2. Start MT process
+        3. Poll for status
+        4. Download translated files (parallelized for target_langs)
         """
+        if not texts or not target_langs:
+            return {lang: [] for lang in target_langs}
+
         token = await self._get_token()
-
-        url = f"https://api.smartling.com/mt-router-api/v2/accounts/{self.account_uid}/smartling-mt/file"
-
         headers = {"Authorization": f"Bearer {token}"}
 
-        # Format strings as a JSON list for the "file" part
+        # 1. Upload file
+        upload_url = f"https://api.smartling.com/file-translations-api/v2/accounts/{self.account_uid}/files"
         import json
 
         file_content = json.dumps(texts)
+        files = {"file": ("strings.json", file_content, "application/json")}
 
-        files = {
-            "file": ("strings.json", file_content, "application/json"),
-        }
-        data = {
-            "sourceLocaleId": "en",
-            "targetLocaleId": target_lang,
-            "fileType": "json",
-        }
+        resp = await self.client.post(upload_url, headers=headers, files=files)
+        resp.raise_for_status()
+        file_uid = resp.json()["response"]["data"]["fileUid"]
 
-        try:
-            # We must use a separate client or careful configuration because 
-            # httpx.AsyncClient.post with 'files' and 'data' sends multipart/form-data.
-            resp = await self.client.post(url, headers=headers, data=data, files=files)
+        # 2. Start MT process
+        mt_url = f"https://api.smartling.com/file-translations-api/v2/accounts/{self.account_uid}/files/{file_uid}/mt"
+        mt_payload = {"targetLocaleIds": target_langs, "sourceLocaleId": "en"}
+        resp = await self.client.post(mt_url, headers=headers, json=mt_payload)
+        resp.raise_for_status()
+        mt_uid = resp.json()["response"]["data"]["mtUid"]
+
+        # 3. Poll for status
+        status_url = f"https://api.smartling.com/file-translations-api/v2/accounts/{self.account_uid}/files/{file_uid}/mt/{mt_uid}/status"
+        while True:
+            resp = await self.client.get(status_url, headers=headers)
             resp.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            logging.error(
-                "Smartling MT File API error: %s - %s", e.response.status_code, e.response.text
-            )
-            raise e
-        except Exception as e:
-            logging.exception("Unexpected error calling Smartling MT File API")
-            raise e
+            status_data = resp.json()["response"]["data"]
+            if status_data["status"] == "COMPLETED":
+                break
+            if status_data["status"] == "FAILED":
+                raise RuntimeError(f"Smartling MT File process failed: {status_data}")
+            await asyncio.sleep(1)
 
-        # The response for the file API is the translated JSON content directly
-        result = resp.json()
-        if not isinstance(result, list):
-            raise ValueError(f"Expected JSON list response from Smartling MT File API, got {type(result)}")
-        return result
+        # 4. Download translated files
+        async def download_lang(lang: str) -> list[str]:
+            dl_url = f"https://api.smartling.com/file-translations-api/v2/accounts/{self.account_uid}/files/{file_uid}/mt/{mt_uid}/locales/{lang}/file"
+            resp = await self.client.get(dl_url, headers=headers)
+            resp.raise_for_status()
+            result = resp.json()
+            if not isinstance(result, list):
+                raise ValueError(
+                    f"Expected JSON list response from Smartling MT File API for {lang}, got {type(result)}"
+                )
+            return result
+
+        results = await asyncio.gather(*[download_lang(lang) for lang in target_langs])
+        return dict(zip(target_langs, results, strict=True))
