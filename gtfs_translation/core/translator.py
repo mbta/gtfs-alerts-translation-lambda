@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 
 class Translator(ABC):
+    always_translate_all: bool = False
+
     @abstractmethod
     async def translate_batch(
         self, texts: list[str], target_langs: list[str]
