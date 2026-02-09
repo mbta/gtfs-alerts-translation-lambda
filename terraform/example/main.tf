@@ -13,6 +13,8 @@ locals {
     Terraform = "true"
     Project   = "gtfs-alerts-translation-lambda"
   }
+
+  destination_path = "alerts/Alerts_enhanced.json"
 }
 
 resource "aws_s3_bucket" "test_bucket" {
@@ -53,7 +55,7 @@ module "gtfs_translator" {
   is_temporary            = true
   function_name           = "example-gtfs-translator"
   destination_bucket_name = aws_s3_bucket.test_bucket.id
-  destination_path        = "alerts/Alerts_enhanced.json"
+  destination_path        = local.destination_path
 
   smartling_user_id     = var.smartling_user_id
   smartling_account_uid = var.smartling_account_uid
