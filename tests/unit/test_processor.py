@@ -201,3 +201,30 @@ async def test_process_feed_reuse_enhanced_json_translations() -> None:
         if isinstance(translations, list):
             es_text = next(t["text"] for t in translations if t["language"] == "es")
             assert es_text == "en curso"
+
+
+@pytest.mark.asyncio
+async def test_process_feed_always_translate_all() -> None:
+    # Old Feed (Has 'Real' translation)
+    old_feed = gtfs_realtime_pb2.FeedMessage()
+    e_old = old_feed.entity.add()
+    e_old.id = "alert1"
+    e_old.alert.header_text.translation.add(text="Delay", language="en")
+    e_old.alert.header_text.translation.add(text="Retraso Real", language="es")
+
+    # New Feed (Same English text)
+    new_feed = gtfs_realtime_pb2.FeedMessage()
+    e_new = new_feed.entity.add()
+    e_new.id = "alert1"
+    e_new.alert.header_text.translation.add(text="Delay", language="en")
+
+    translator = MockTranslator()
+    translator.always_translate_all = True
+
+    await FeedProcessor.process_feed(new_feed, old_feed, translator, ["es"])
+
+    # Even though it's in old_feed, we should have translated it anyway
+    # because always_translate_all is True.
+    trans = new_feed.entity[0].alert.header_text.translation
+    es_text = next(t.text for t in trans if t.language == "es")
+    assert es_text == "[es] Delay"

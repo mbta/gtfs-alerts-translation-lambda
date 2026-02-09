@@ -139,6 +139,8 @@ class SmartlingTranslator(Translator):
 
 
 class SmartlingJobBatchesTranslator(SmartlingTranslator):
+    always_translate_all: bool = True
+
     def __init__(self, user_id: str, user_secret: str, project_id: str, source_uri: str):
         # We don't need account_uid for Job Batches V2
         super().__init__(user_id, user_secret, "")

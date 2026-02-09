@@ -180,11 +180,14 @@ class FeedProcessor:
         semaphore = asyncio.Semaphore(concurrency_limit)
 
         # Build a list of unique English strings that need any translation
-        all_needed_english = [
-            eng
-            for eng, existing in translation_map.items()
-            if any(lang not in existing for lang in target_langs) and eng.strip() != ""
-        ]
+        if translator.always_translate_all:
+            all_needed_english = [eng for eng in translation_map.keys() if eng.strip() != ""]
+        else:
+            all_needed_english = [
+                eng
+                for eng, existing in translation_map.items()
+                if any(lang not in existing for lang in target_langs) and eng.strip() != ""
+            ]
 
         if all_needed_english:
             async with semaphore:
@@ -194,9 +197,7 @@ class FeedProcessor:
                 for lang, translations in translations_by_lang.items():
                     metrics.strings_translated += len(translations)
                     for english, translated in zip(all_needed_english, translations, strict=True):
-                        # Only update if it wasn't already in the map (from reuse)
-                        if lang not in translation_map[english]:
-                            translation_map[english][lang] = translated
+                        translation_map[english][lang] = translated
 
         # 3. Apply translations back to the feed
         # For empty strings, we just return an empty string for the target language
