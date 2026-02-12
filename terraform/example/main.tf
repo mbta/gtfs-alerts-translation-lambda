@@ -1,6 +1,6 @@
 terraform {
   backend "local" {
-    path = "/tmp/gtfs-alerts-translation-lambda.tfstate"
+    path = "/tmp/gtfs-rt-alerts-translation-lambda.tfstate"
   }
 }
 
@@ -11,7 +11,7 @@ provider "aws" {
 locals {
   tags = {
     Terraform = "true"
-    Project   = "gtfs-alerts-translation-lambda"
+    Project   = "gtfs-rt-alerts-translation-lambda"
   }
 
   destination_path = "alerts/Alerts_enhanced.json"
