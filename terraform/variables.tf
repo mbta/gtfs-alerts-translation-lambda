@@ -38,9 +38,9 @@ variable "destination_bucket_name" {
   type        = string
 }
 
-variable "destination_path" {
-  description = "S3 path/prefix within the bucket"
-  type        = string
+variable "destination_paths" {
+  description = "S3 paths/keys within the bucket"
+  type        = list(string)
 }
 
 variable "target_languages" {

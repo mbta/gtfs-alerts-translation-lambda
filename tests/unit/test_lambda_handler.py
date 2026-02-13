@@ -17,7 +17,7 @@ from gtfs_translation.lambda_handler import lambda_handler, should_upload
 
 def test_lambda_handler_s3_event(mocker: MockerFixture) -> None:
     # Mock settings
-    mocker.patch("gtfs_translation.config.settings.destination_bucket_url", "s3://dest/feed.pb")
+    mocker.patch("gtfs_translation.config.settings.destination_bucket_urls", "s3://dest/feed.pb")
     mocker.patch("gtfs_translation.config.settings.target_languages", "es")
 
     # Mock run_translation
@@ -30,11 +30,11 @@ def test_lambda_handler_s3_event(mocker: MockerFixture) -> None:
     lambda_handler(event, None)
 
     # Verify it called run_translation with the correct S3 URL
-    mock_run.assert_called_once_with("s3://source-bucket/alerts.pb", "s3://dest/feed.pb")
+    mock_run.assert_called_once_with("s3://source-bucket/alerts.pb", ["s3://dest/feed.pb"])
 
 
 def test_lambda_handler_s3_event_decodes_key(mocker: MockerFixture) -> None:
-    mocker.patch("gtfs_translation.config.settings.destination_bucket_url", "s3://dest/feed.pb")
+    mocker.patch("gtfs_translation.config.settings.destination_bucket_urls", "s3://dest/feed.pb")
     mocker.patch("gtfs_translation.config.settings.target_languages", "es")
 
     mock_run = mocker.patch("gtfs_translation.lambda_handler.run_translation")
@@ -53,15 +53,18 @@ def test_lambda_handler_s3_event_decodes_key(mocker: MockerFixture) -> None:
     lambda_handler(event, None)
 
     mock_run.assert_called_once_with(
-        "s3://source-bucket/alerts/Service Alert+AM.pb", "s3://dest/feed.pb"
+        "s3://source-bucket/alerts/Service Alert+AM.pb", ["s3://dest/feed.pb"]
     )
 
 
 def test_lambda_handler_same_source_dest(mocker: MockerFixture) -> None:
     mocker.patch("gtfs_translation.config.settings.source_url", "s3://same/path")
-    mocker.patch("gtfs_translation.config.settings.destination_bucket_url", "s3://same/path")
+    mocker.patch("gtfs_translation.config.settings.destination_bucket_urls", "s3://same/path")
 
-    with pytest.raises(ValueError, match="Source and destination URL are the same"):
+    # run_translation raises before IO; mock fetch_source to avoid unintended calls.
+    mocker.patch("gtfs_translation.lambda_handler.fetch_source")
+
+    with pytest.raises(ValueError, match="Source URL matches one of the destinations"):
         lambda_handler({}, None)
 
 
