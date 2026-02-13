@@ -8,6 +8,15 @@ data "aws_iam_policy_document" "lambda_assume_role" {
   }
 }
 
+locals {
+  destination_object_arns = flatten([
+    for path in var.destination_paths : [
+      "arn:aws:s3:::${var.destination_bucket_name}/${path}",
+      # "arn:aws:s3:::${var.destination_bucket_name}/${path}*"
+    ]
+  ])
+}
+
 resource "aws_iam_role" "lambda_role" {
   name               = "${var.function_name}-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
@@ -48,11 +57,8 @@ resource "aws_iam_role_policy" "lambda_permissions" {
             "s3:GetObject",
             "s3:PutObject"
           ]
-          Effect = "Allow"
-          Resource = [
-            "arn:aws:s3:::${var.destination_bucket_name}/${var.destination_path}",
-            "arn:aws:s3:::${var.destination_bucket_name}/${var.destination_path}*"
-          ]
+          Effect   = "Allow"
+          Resource = local.destination_object_arns
         },
         {
           Action = [
@@ -112,10 +118,12 @@ resource "aws_lambda_function" "translation_function" {
         var.smartling_job_name_template,
         var.function_name
       )
-      SOURCE_URL                = var.trigger.source_url != null ? var.trigger.source_url : ""
-      DESTINATION_BUCKET_URL    = "s3://${var.destination_bucket_name}/${var.destination_path}"
-      TARGET_LANGUAGES          = join(",", var.target_languages)
-      LOG_LEVEL                 = var.log_level
+      SOURCE_URL = var.trigger.source_url != null ? var.trigger.source_url : ""
+      DESTINATION_BUCKET_URLS = join(",", [
+        for path in var.destination_paths : "s3://${var.destination_bucket_name}/${path}"
+      ])
+      TARGET_LANGUAGES = join(",", var.target_languages)
+      LOG_LEVEL        = var.log_level
     }
   }
 

@@ -12,10 +12,14 @@ class Settings:
             "SMARTLING_JOB_NAME_TEMPLATE", "GTFS Alerts Translation"
         )
         self.source_url = os.environ.get("SOURCE_URL", "")
-        self.destination_bucket_url = os.environ.get("DESTINATION_BUCKET_URL", "")
+        self.destination_bucket_urls = os.environ.get("DESTINATION_BUCKET_URLS", "")
         self.target_languages = os.environ.get("TARGET_LANGUAGES", "es-LA")
         self.concurrency_limit = int(os.environ.get("CONCURRENCY_LIMIT", "20"))
         self.log_level = os.environ.get("LOG_LEVEL", "NOTICE")
+
+    @property
+    def destination_bucket_url_list(self) -> list[str]:
+        return [url.strip() for url in self.destination_bucket_urls.split(",") if url.strip()]
 
     @property
     def target_lang_list(self) -> list[str]:

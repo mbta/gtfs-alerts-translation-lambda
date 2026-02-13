@@ -25,7 +25,7 @@ The application is configured via environment variables:
 | `SMARTLING_USER_SECRET` | Smartling API User Secret |
 | `SMARTLING_ACCOUNT_UID` | Smartling Account UID |
 | `SOURCE_URL` | Default HTTP or S3 URL (e.g., `s3://bucket/alerts.pb`) |
-| `DESTINATION_BUCKET_URL` | S3 URL for translated output (e.g., `s3://bucket/alerts-translated.pb`) |
+| `DESTINATION_BUCKET_URLS` | Comma-separated S3 URLs for translated output (e.g., `s3://bucket/alerts.pb,s3://bucket/alerts.json`) |
 | `TARGET_LANGUAGES` | Comma-separated language codes (e.g., `es,fr,pt`) |
 
 ## Development
