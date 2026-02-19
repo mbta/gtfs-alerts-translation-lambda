@@ -130,9 +130,20 @@ class SmartlingTranslator(Translator):
         # { "response": { "data": { "items": [ { "key": "0", "translationText": "..." }, ... ] } } }
         items = data["response"]["data"]["items"]
 
-        # Sort by key (index) to maintain original order
-        sorted_items = sorted(items, key=lambda x: int(x["key"]))
-        return [item["translationText"] for item in sorted_items]
+        translations_by_key = {
+            item["key"]: item["translationText"]
+            for item in items
+            if "key" in item and "translationText" in item
+        }
+        translations: list[str] = []
+        for index, text in enumerate(texts):
+            key = str(index)
+            translation = translations_by_key.get(key)
+            if translation is None:
+                logging.warning("Smartling MT API missing item for key %s", key)
+                translation = text
+            translations.append(translation)
+        return translations
 
     async def close(self) -> None:
         await self.client.aclose()
