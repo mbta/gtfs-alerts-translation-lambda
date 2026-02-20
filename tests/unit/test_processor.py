@@ -47,14 +47,14 @@ async def test_process_feed_diff_logic_reuse() -> None:
     # Old Feed (Has 'Real' translation)
     old_feed = gtfs_realtime_pb2.FeedMessage()
     e_old = old_feed.entity.add()
-    e_old.id = "alert1"
+    e_old.id = "alert-old"
     e_old.alert.header_text.translation.add(text="Delay", language="en")
     e_old.alert.header_text.translation.add(text="Retraso Real", language="es")
 
-    # New Feed (Same English text)
+    # New Feed (Same English text, different alert ID)
     new_feed = gtfs_realtime_pb2.FeedMessage()
     e_new = new_feed.entity.add()
-    e_new.id = "alert1"
+    e_new.id = "alert-new"
     e_new.alert.header_text.translation.add(text="Delay", language="en")
 
     translator = MockTranslator()  # Mock would produce "[es] Delay"

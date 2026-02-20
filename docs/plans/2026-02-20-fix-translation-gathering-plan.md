@@ -29,11 +29,11 @@ Current translation reuse depends on matching alert IDs and paired translated st
 - Respect `always_translate_all` behavior for translator implementations.
 
 ## Acceptance Criteria
-- [ ] Existing translations are reused even when alert IDs differ between old and new feeds.
-- [ ] Both PB and enhanced JSON fields contribute to translation reuse and English collection.
-- [ ] Missing translations are determined by comparing English-text dictionaries, not by alert ID.
-- [ ] New translations overwrite old translations for the same English text when merged.
-- [ ] Unit tests cover the ID-mismatch reuse scenario and pass.
+- [x] Existing translations are reused even when alert IDs differ between old and new feeds.
+- [x] Both PB and enhanced JSON fields contribute to translation reuse and English collection.
+- [x] Missing translations are determined by comparing English-text dictionaries, not by alert ID.
+- [x] New translations overwrite old translations for the same English text when merged.
+- [x] Unit tests cover the ID-mismatch reuse scenario and pass.
 
 ## MVP Structure
 
