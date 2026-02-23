@@ -256,7 +256,7 @@ class SmartlingJobBatchesTranslator(SmartlingTranslator):
             "fileType": "json",
         }
         # Multi-value field for localeIdsToAuthorize[]
-        multi_data = [("localeIdsToAuthorize[]", lang) for lang in target_langs]
+        multi_data = [("localeIdsToAuthorize[]", ",".join(target_langs))]
         form_data = list(data.items()) + multi_data
 
         # If we have both data and files, httpx uses multipart/form-data.
