@@ -3,6 +3,16 @@ output "lambda_function_arn" {
   value       = aws_lambda_function.translation_function.arn
 }
 
+output "lambda_function_name" {
+  description = "Name of the Lambda function"
+  value       = aws_lambda_function.translation_function.function_name
+}
+
+output "cloudwatch_log_group" {
+  description = "CloudWatch log group name for the Lambda function"
+  value       = aws_cloudwatch_log_group.lambda_logs.name
+}
+
 output "lambda_role_arn" {
   description = "ARN of the IAM role used by the Lambda"
   value       = aws_iam_role.lambda_role.arn
