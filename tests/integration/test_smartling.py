@@ -177,3 +177,107 @@ async def test_smartling_file_translator(respx_mock: Any) -> None:
     assert dl_route.call_count == 1
 
     await translator.close()
+
+
+@pytest.mark.asyncio
+async def test_upload_file_to_batch_locale_ids_format(respx_mock: Any) -> None:
+    """Test that localeIdsToAuthorize[] is sent as a single comma-separated value."""
+    # Mock auth endpoint
+    respx_mock.post("https://api.smartling.com/auth-api/v2/authenticate").mock(
+        return_value=httpx.Response(
+            200, json={"response": {"data": {"accessToken": "test-token", "expiresIn": 3600}}}
+        )
+    )
+
+    # Track the upload request
+    upload_requests = []
+
+    def capture_upload_request(request: httpx.Request) -> httpx.Response:
+        """Capture the request for inspection."""
+        upload_requests.append(request)
+        return httpx.Response(202, json={"response": {"code": "ACCEPTED"}})
+
+    # Mock batch upload endpoint
+    respx_mock.post(
+        "https://api.smartling.com/job-batches-api/v2/projects/proj123/batches/batch123/file"
+    ).mock(side_effect=capture_upload_request)
+
+    translator = SmartlingJobBatchesTranslator("user", "secret", "proj123", "s3://bucket/key.json")
+
+    # Manually call the upload method
+    headers = {"Authorization": "Bearer test-token"}
+    target_langs = ["es", "fr", "pt"]
+
+    await translator._upload_file_to_batch(headers, "batch123", ["Hello", "World"], target_langs)
+
+    # Verify the request was made
+    assert len(upload_requests) == 1
+    request = upload_requests[0]
+
+    # Parse the multipart form data
+    content = request.content.decode("utf-8")
+
+    # Verify that localeIdsToAuthorize[] appears once with comma-separated values
+    # The exact format depends on how httpx encodes multipart, but we can check:
+    # 1. It contains the field name
+    assert 'name="localeIdsToAuthorize[]"' in content
+
+    # 2. It contains the comma-separated language codes
+    assert "es,fr,pt" in content
+
+    # 3. Verify there's only ONE occurrence of the field (not multiple)
+    locale_field_count = content.count('name="localeIdsToAuthorize[]"')
+    assert locale_field_count == 1, (
+        f"Expected 1 localeIdsToAuthorize[] field, found {locale_field_count}"
+    )
+
+    await translator.close()
+
+
+@pytest.mark.asyncio
+async def test_upload_file_to_batch_single_language(respx_mock: Any) -> None:
+    """Test that localeIdsToAuthorize[] works correctly with a single language."""
+    # Mock auth endpoint
+    respx_mock.post("https://api.smartling.com/auth-api/v2/authenticate").mock(
+        return_value=httpx.Response(
+            200, json={"response": {"data": {"accessToken": "test-token", "expiresIn": 3600}}}
+        )
+    )
+
+    # Track the upload request
+    upload_requests = []
+
+    def capture_upload_request(request: httpx.Request) -> httpx.Response:
+        """Capture the request for inspection."""
+        upload_requests.append(request)
+        return httpx.Response(202, json={"response": {"code": "ACCEPTED"}})
+
+    # Mock batch upload endpoint
+    respx_mock.post(
+        "https://api.smartling.com/job-batches-api/v2/projects/proj123/batches/batch123/file"
+    ).mock(side_effect=capture_upload_request)
+
+    translator = SmartlingJobBatchesTranslator("user", "secret", "proj123", "s3://bucket/key.json")
+
+    # Manually call the upload method with a single language
+    headers = {"Authorization": "Bearer test-token"}
+    target_langs = ["es"]
+
+    await translator._upload_file_to_batch(headers, "batch123", ["Hello"], target_langs)
+
+    # Verify the request was made
+    assert len(upload_requests) == 1
+    request = upload_requests[0]
+
+    # Parse the multipart form data
+    content = request.content.decode("utf-8")
+
+    # Verify that localeIdsToAuthorize[] appears once with the single language
+    assert 'name="localeIdsToAuthorize[]"' in content
+    assert "es" in content
+
+    # Verify there's only ONE occurrence of the field
+    locale_field_count = content.count('name="localeIdsToAuthorize[]"')
+    assert locale_field_count == 1
+
+    await translator.close()
