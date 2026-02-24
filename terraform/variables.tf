@@ -102,6 +102,17 @@ variable "lambda_timeout" {
   default     = 60
 }
 
+variable "translation_timeout" {
+  description = "Translation timeout in seconds (should be less than lambda_timeout to ensure feed is always published)"
+  type        = number
+  default     = 50
+
+  validation {
+    condition     = var.translation_timeout > 0
+    error_message = "Translation timeout must be greater than 0."
+  }
+}
+
 variable "lambda_memory_size" {
   description = "Lambda memory size in MB"
   type        = number

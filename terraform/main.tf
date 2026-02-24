@@ -15,6 +15,9 @@ locals {
       # "arn:aws:s3:::${var.destination_bucket_name}/${path}*"
     ]
   ])
+
+  # Validate that translation_timeout is less than lambda_timeout
+  validate_timeouts = var.translation_timeout < var.lambda_timeout ? true : tobool("translation_timeout must be less than lambda_timeout to ensure feed is always published even if translation times out")
 }
 
 resource "aws_iam_role" "lambda_role" {
@@ -124,8 +127,9 @@ resource "aws_lambda_function" "translation_function" {
       DESTINATION_BUCKET_URLS = join(",", [
         for path in var.destination_paths : "s3://${var.destination_bucket_name}/${path}"
       ])
-      TARGET_LANGUAGES = join(",", var.target_languages)
-      LOG_LEVEL        = var.log_level
+      TARGET_LANGUAGES    = join(",", var.target_languages)
+      LOG_LEVEL           = var.log_level
+      TRANSLATION_TIMEOUT = tostring(var.translation_timeout)
     }
   }
 
