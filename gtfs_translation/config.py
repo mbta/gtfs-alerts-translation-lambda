@@ -33,6 +33,7 @@ class Settings:
         self.target_languages = os.environ.get("TARGET_LANGUAGES", "es-419")
         self.concurrency_limit = int(os.environ.get("CONCURRENCY_LIMIT", "20"))
         self.log_level = os.environ.get("LOG_LEVEL", "NOTICE")
+        self.translation_timeout = int(os.environ.get("TRANSLATION_TIMEOUT", "50"))
 
     @property
     def destination_bucket_url_list(self) -> list[str]:

@@ -98,21 +98,46 @@ async def run_translation(source_url: str, dest_urls: list[str]) -> None:
         logger.log(NOTICE_LEVEL, "Using Smartling MT Router translator")
 
     try:
-        metrics = await FeedProcessor.process_feed(
-            new_feed,
-            old_feed,
-            translator,
-            settings.target_lang_list,
-            concurrency_limit=settings.concurrency_limit,
-            source_json=source_json,
-            dest_json=dest_json,
-        )
+        translation_successful = True
+        metrics = None
+        try:
+            # Enforce translation timeout to ensure feed is always published
+            metrics = await asyncio.wait_for(
+                FeedProcessor.process_feed(
+                    new_feed,
+                    old_feed,
+                    translator,
+                    settings.target_lang_list,
+                    concurrency_limit=settings.concurrency_limit,
+                    source_json=source_json,
+                    dest_json=dest_json,
+                ),
+                timeout=settings.translation_timeout,
+            )
+            logger.log(NOTICE_LEVEL, "Translation metrics: %s", metrics.to_dict())
+        except TimeoutError:
+            logger.warning(
+                "Translation timed out after %s seconds. Publishing feed without translations.",
+                settings.translation_timeout,
+            )
+            translation_successful = False
+            metrics = None
+        except Exception as e:
+            logger.exception(
+                "Translation failed with error: %s. Publishing feed without translations.", e
+            )
+            translation_successful = False
+            metrics = None
 
-        logger.log(NOTICE_LEVEL, "Translation metrics: %s", metrics.to_dict())
-
-        if not should_upload(old_feed, new_feed, metrics):
-            logger.log(NOTICE_LEVEL, "No translation changes detected; skipping upload.")
-            return
+        if not translation_successful or not should_upload(old_feed, new_feed, metrics):
+            if not translation_successful:
+                # Always upload if translation failed/timed out
+                logger.log(
+                    NOTICE_LEVEL, "Uploading feed without translations due to translation failure."
+                )
+            else:
+                logger.log(NOTICE_LEVEL, "No translation changes detected; skipping upload.")
+                return
 
         # 4. Upload to all destinations
         for dest_url in dest_urls:

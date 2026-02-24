@@ -17,16 +17,33 @@ An AWS Lambda function that translates GTFS-Realtime ServiceAlerts feeds from En
 
 ## Configuration
 
+### Environment Variables
+
 The application is configured via environment variables:
 
-| Variable | Description |
-|----------|-------------|
-| `SMARTLING_USER_ID` | Smartling API User Identifier |
-| `SMARTLING_USER_SECRET` | Smartling API User Secret |
-| `SMARTLING_ACCOUNT_UID` | Smartling Account UID |
-| `SOURCE_URL` | Default HTTP or S3 URL (e.g., `s3://bucket/alerts.pb`) |
-| `DESTINATION_BUCKET_URLS` | Comma-separated S3 URLs for translated output (e.g., `s3://bucket/alerts.pb,s3://bucket/alerts.json`) |
-| `TARGET_LANGUAGES` | Comma-separated language codes (e.g., `es-419,fr,pt`). Uses GTFS standard codes. |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SMARTLING_USER_ID` | Smartling API User Identifier | - |
+| `SMARTLING_USER_SECRET` | Smartling API User Secret | - |
+| `SMARTLING_ACCOUNT_UID` | Smartling Account UID | - |
+| `SOURCE_URL` | Default HTTP or S3 URL (e.g., `s3://bucket/alerts.pb`) | - |
+| `DESTINATION_BUCKET_URLS` | Comma-separated S3 URLs for translated output (e.g., `s3://bucket/alerts.pb,s3://bucket/alerts.json`) | - |
+| `TARGET_LANGUAGES` | Comma-separated language codes (e.g., `es-419,fr,pt`). Uses GTFS standard codes. | `es-419` |
+| `TRANSLATION_TIMEOUT` | Maximum time (in seconds) to wait for translations before publishing feed without them | `50` |
+
+### Translation Timeout Behavior
+
+The Lambda is configured with two timeout values to ensure alerts are always published even if translation fails:
+
+- **`TRANSLATION_TIMEOUT`** (environment variable): The maximum time to wait for Smartling API responses (default: 50s)
+- **`lambda_timeout`** (Terraform variable): The AWS Lambda function timeout (default: 60s, must be greater than `TRANSLATION_TIMEOUT`)
+
+If translation doesn't complete within `TRANSLATION_TIMEOUT` seconds, the Lambda will:
+1. Log a warning about the timeout
+2. Publish the original English-only feed to the destination
+3. Allow the next scheduled run to attempt translation again
+
+This ensures critical alert information reaches users even during Smartling API outages or slowdowns.
 
 ### Language Code Mapping
 
