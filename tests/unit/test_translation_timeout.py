@@ -18,7 +18,7 @@ def mock_s3() -> Any:
 
 @pytest.fixture
 def mock_settings() -> Any:
-    with patch("gtfs_translation.config.settings") as mock:
+    with patch("gtfs_translation.lambda_handler.settings") as mock:
         mock.source_url = "http://example.com/alerts.pb"
         mock.destination_bucket_url_list = ["s3://test-bucket/alerts.pb"]
         mock.target_lang_list = ["es-419"]
