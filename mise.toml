@@ -11,6 +11,7 @@ run = "uv run ruff format . && uv run ruff check . --fix"
 
 [tasks.test]
 description = "Run tests"
+env = { SMARTLING_USER_ID = "", SMARTLING_USER_SECRET = "", SMARTLING_USER_SECRET_ARN = "", SMARTLING_ACCOUNT_UID = "", SMARTLING_PROJECT_ID = "" }
 run = "uv run pytest"
 
 [tasks.check]
